@@ -53,7 +53,7 @@ expected_temperature_maturation = 30
 expected_pressure_maturation = 10
 
 # RPi setup configuration
-rpi = RPiConfigs()
+rpi = RPiConfigs(green_LED_pin=1, yellow_LED_pin=2, red_LED_pin=3)
 
 params_expected_values = {'moisture':
                               {'casting': expected_moisture_casting,
