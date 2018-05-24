@@ -1,4 +1,5 @@
 import time
+
 import RPi
 
 
@@ -101,8 +102,8 @@ class DHT11:
 
         state = STATE_INIT_PULL_DOWN
 
-        lengths = [] # will contain the lengths of data pull up periods
-        current_length = 0 # will contain the length of the previous period
+        lengths = []  # will contain the lengths of data pull up periods
+        current_length = 0  # will contain the length of the previous period
 
         for i in range(len(data)):
 

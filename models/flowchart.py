@@ -176,7 +176,7 @@ def save_short_report(plant_instance, BIM_id, phase, status, record_timestamp, m
     data_converter.append_summary(log_short, file_detail=file_suffix[0])
 
 
-def monitoring_phase(plant_instance, current_phase, use_sensors=True):
+def monitoring_phase(plant, current_phase, use_sensors=True):
     """Monitoring session under a specific phase"""
     current_params = {
         'moisture': 0.0,
@@ -210,10 +210,11 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
 
         # checks if the params are close to the expected value or if the cast has to be stopped
         if check_params(current_params, phase=current_phase, urgency_label='warning'):
-            rpi.switch_all_OFF()
+            # still good
+            rpi.switch_off_all()
             rpi.change_LED_status(action='ON', LED_color='y')
-        else:
-            rpi.switch_all_OFF()
+        else:  # stop concrete casting
+            rpi.switch_off_all()
             rpi.change_LED_status(action='ON', LED_color='r')
             return False
 
@@ -227,7 +228,7 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
         current_params['pressure'] = update_params(use_sensors)
 
         # update log-full
-        log_full.append({'BIM_id': plant_instance['BIM_id'],
+        log_full.append({'BIM_id': plant['BIM_id'],
                          'phase': current_phase,
                          'status': 'Bad',
                          'begin_timestamp': start_time_full_report,
@@ -242,13 +243,13 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
         short_report_elapsed_time = end_time - start_time_short_report
 
         if full_report_elapsed_time > full_report_sampling_rate:
-            # Salvataggio su file Excel completo (full)
+            # save to full report file
             save_full_report(log_full)
             start_time_full_report = 0
             log_full = []
 
         if short_report_elapsed_time > short_report_sampling_rate:
-            # Salvataggio su file Excel riassuntivo (short)
+            # save to short report file
             save_short_report(plant_instance, BIM_id=plant_instance['BIM_id'],
                               phase=current_phase, status='Bad', record_timestamp=datetime.datetime.now(),
                               moisture=current_params['moisture'], temperature=current_params['temperature'],
@@ -264,7 +265,7 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
     return True
 
 
-def monitoring_session(plant_instance, use_sensors=True):
+def monitoring_session(plant, use_sensors=True):
     current_params = {
         'moisture': 0.0,
         'temperature': 0.0,
@@ -276,7 +277,7 @@ def monitoring_session(plant_instance, use_sensors=True):
 
     for current_phase in phases:
         # monitoring
-        result = monitoring_phase(plant_instance, current_phase, use_sensors)
+        result = monitoring_phase(plant, current_phase, use_sensors)
 
         # if something went wrong, stop the entire monitoring system
         if not result:
@@ -284,12 +285,12 @@ def monitoring_session(plant_instance, use_sensors=True):
 
         # update data with the change of status
         if current_phase == 'casting':
-            # Casting parameters levels as expected
+            # casting parameters levels as expected
             print("Parameters at casting are as expected. Moving to concrete maturation phase.")
             if wait_for_input:
                 input("Press any key to proceed to the next phase")
         else:  # maturation - last phase
-            # Maturation level required reached
+            # maturation level required reached
             print("Level of maturation required is satisfied. You can now remove the formwork.")
 
         # parameters update
@@ -298,7 +299,7 @@ def monitoring_session(plant_instance, use_sensors=True):
         current_params['pressure'] = update_params(use_sensors)
 
         log_full = []
-        log_full.append({'BIM_id': plant_instance['BIM_id'],
+        log_full.append({'BIM_id': plant['BIM_id'],
                          'phase': current_phase,
                          'status': 'OK',
                          'begin_timestamp': start_time,
@@ -308,7 +309,7 @@ def monitoring_session(plant_instance, use_sensors=True):
                          'pressure': current_params['pressure']})
 
         save_full_report(log_full)
-        save_short_report(plant_instance, BIM_id=plant_instance['BIM_id'],
+        save_short_report(plant, BIM_id=plant['BIM_id'],
                           phase=current_phase, status='OK', record_timestamp=datetime.datetime.now(),
                           moisture=current_params['moisture'], temperature=current_params['temperature'],
                           pressure=current_params['pressure'])
@@ -319,7 +320,7 @@ def monitoring_session(plant_instance, use_sensors=True):
 
 if __name__ == '__main__':
     # Init the monitoring system
-    # Order of the parameters is not important since they are filled directly.
+    # Order of the parameters is not important since they are filled using params name.
     # Just pay attention if there's any parameter missing.
     plant_instance = init_plant(B3F_id='3d0f5ea4-1394-46d0-b0b1-ba0ea9af8379',
                                 name='Pilastro in calcestruzzo - Rettangolare',
@@ -338,5 +339,5 @@ if __name__ == '__main__':
                                 pillar_number='112',
                                 superficial_quality='Bassa',
                                 BIM_id='40e526d7-263a-4f74-b935-1359b190b926')
-    result = monitoring_session(plant_instance=plant_instance, use_sensors=True)
+    result = monitoring_session(plant=plant_instance, use_sensors=True)
     print(result)

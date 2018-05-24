@@ -40,7 +40,7 @@ class RPiConfigs(object):
                 GPIO.output(self.LED_mapping[LED_color], GPIO.HIGH)
                 LED_status[LED_color] = True
 
-    def switch_all_OFF(self):
+    def switch_off_all(self):
         """Switches off all the LEDs connected"""
         for l in LED_colors:
             self.change_LED_status(action='OFF', LED_color=l)
