@@ -17,19 +17,22 @@ short_schema_keys = ['B3F_id', 'name', 'type', 'desc', 'loc', 'cls', 'status', '
 urgency_labels = ['safe', 'warning']
 process_params = ['moisture', 'temperature', 'pressure']
 
-# tolleranza sul valore atteso (safe)
+# wait for user to grant the access to the new phase or get there automatically
+wait_for_input = True
+
+# tolerance on expected values (safe)
 moisture_safe_tolerance = 2
 temperature_safe_tolerance = 2
 pressure_safe_tolerance = 2
 
-# tolleranza sul valore atteso (warning)
+# tolerance on expected values (warning)
 moisture_warning_tolerance = 10
 temperature_warning_tolerance = 10
 pressure_warning_tolerance = 10
 
 # durata delay tra letture successive (in secondi)
-casting_read_delay = 3
-maturation_read_delay = 3
+casting_read_delay = 10
+maturation_read_delay = 10
 
 # delay tra due salvataggi successivi (in secondi)
 full_report_sampling_rate = 60
@@ -78,7 +81,6 @@ params_tolerances = {'moisture':
 def check_param_in_range(param_key, param_value, phase, urgency_label):
     """checks if the given parameter with his value is in the range allowed,
     based on the phase of the process and the urgency"""
-
     return float(param_value) < abs(
         params_expected_values[param_key][phase] - params_tolerances[param_key][urgency_label])
 
@@ -86,7 +88,6 @@ def check_param_in_range(param_key, param_value, phase, urgency_label):
 def check_params(current_params, phase, urgency_label):
     """Checks if the current parameters are close enough to the expected value,
      otherwise returns a warning"""
-
     cumulative_or_check = 0
 
     for key, value in current_params:
@@ -207,13 +208,20 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
               "Pressure: {}\n".format(current_phase, current_params['moisture'],
                                       current_params['temperature'], current_params['pressure']))
 
-        # TODO communication with the correct operator, based on the check using 'wanring' label
+        # checks if the params are close to the expected value or if the cast has to be stopped
+        if check_params(current_params, phase=current_phase, urgency_label='warning'):
+            rpi.switch_all_OFF()
+            rpi.change_LED_status(action='ON', LED_color='y')
+        else:
+            rpi.switch_all_OFF()
+            rpi.change_LED_status(action='ON', LED_color='r')
+            return False
 
         # invia dati a operatore -> ferma il getto
         # invia dati a DL
         # invia dati a centrale di betonaggio
 
-        # Aggiornamento parametri dai sensori
+        # parameters update
         current_params['moisture'], \
         current_params['temperature'], \
         current_params['pressure'] = update_params(use_sensors)
@@ -228,6 +236,7 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
                          'temperature': current_params['temperature'],
                          'pressure': current_params['pressure']})
 
+        # evaluate ETA
         end_time = time.time()
         full_report_elapsed_time = end_time - start_time_full_report
         short_report_elapsed_time = end_time - start_time_short_report
@@ -252,6 +261,7 @@ def monitoring_phase(plant_instance, current_phase, use_sensors=True):
             time.sleep(casting_read_delay)
         else:
             time.sleep(maturation_read_delay)
+    return True
 
 
 def monitoring_session(plant_instance, use_sensors=True):
@@ -266,16 +276,23 @@ def monitoring_session(plant_instance, use_sensors=True):
 
     for current_phase in phases:
         # monitoring
-        monitoring_phase(plant_instance, current_phase, use_sensors)
+        result = monitoring_phase(plant_instance, current_phase, use_sensors)
+
+        # if something went wrong, stop the entire monitoring system
+        if not result:
+            return False
 
         # update data with the change of status
         if current_phase == 'casting':
             # Casting parameters levels as expected
             print("Parameters at casting are as expected. Moving to concrete maturation phase.")
+            if wait_for_input:
+                input("Press any key to proceed to the next phase")
         else:  # maturation - last phase
             # Maturation level required reached
             print("Level of maturation required is satisfied. You can now remove the formwork.")
 
+        # parameters update
         current_params['moisture'], \
         current_params['temperature'], \
         current_params['pressure'] = update_params(use_sensors)
@@ -321,4 +338,5 @@ if __name__ == '__main__':
                                 pillar_number='112',
                                 superficial_quality='Bassa',
                                 BIM_id='40e526d7-263a-4f74-b935-1359b190b926')
-    monitoring_session(plant_instance=plant_instance, use_sensors=True)
+    result = monitoring_session(plant_instance=plant_instance, use_sensors=True)
+    print(result)

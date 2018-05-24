@@ -8,36 +8,42 @@ import dht11
 # delay between two readings if the first was not valid
 retry_delay = 1
 
-led_status = {'r': False, 'y': False, 'g': False}  # False ->OFF, True -> ON
+LED_status = {'r': False, 'y': False, 'g': False}  # False ->OFF, True -> ON
+LED_colors = ['r', 'y', 'g']
 
 
 class RPiConfigs(object):
     """Configuration class to call when initializing a session with RPi"""
 
-    def __init__(self, LCD_output, green_led_pin, yellow_led_pin, red_led_pin, moisture_temp_sensor_pin=17):
+    def __init__(self, LCD_output, green_LED_pin, yellow_LED_pin, red_LED_pin, moisture_temp_sensor_pin=17):
         self.moisture_temp_pin = moisture_temp_sensor_pin
-        self.green_led_pin = green_led_pin
-        self.yellow_led_pin = yellow_led_pin
-        self.red_led_pin = red_led_pin
+        self.green_LED_pin = green_LED_pin
+        self.yellow_LED_pin = yellow_LED_pin
+        self.red_LED_pin = red_LED_pin
         self.moisture_sensor_instance = dht11.DHT11(pin=moisture_temp_sensor_pin)
-        self.led_mapping = {'r': red_led_pin, 'g': green_led_pin, 'y': yellow_led_pin}
+        self.LED_mapping = {'r': red_LED_pin, 'g': green_LED_pin, 'y': yellow_LED_pin}
 
         # initialize GPIO
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.cleanup()
 
-    def change_LED_status(self, action, led_color='r'):
-        """Change LED status according to specified action"""
-        if led_color not in led_status.keys():
+    def change_LED_status(self, action, LED_color='r'):
+        """Changes a particular LED status according to specified action"""
+        if LED_color not in LED_colors:
             print('No LED with the selected color')
         else:
             if action == 'OFF':
-                GPIO.output(self.led_mapping[led_color], GPIO.LOW)
-                led_status[led_color] = False
+                GPIO.output(self.LED_mapping[LED_color], GPIO.LOW)
+                LED_status[LED_color] = False
             else:
-                GPIO.output(self.led_mapping[led_color], GPIO.HIGH)
-                led_status[led_color] = True
+                GPIO.output(self.LED_mapping[LED_color], GPIO.HIGH)
+                LED_status[LED_color] = True
+
+    def switch_all_OFF(self):
+        """Switches off all the LEDs connected"""
+        for l in LED_colors:
+            self.change_LED_status(action='OFF', LED_color=l)
 
     @property
     def read_temperature(self):
