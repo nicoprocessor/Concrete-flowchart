@@ -5,7 +5,6 @@ import pathlib
 import os
 from pprint import pprint
 from collections import OrderedDict
-from typing import Dict, Any, List, NewType
 
 # typing aliases
 # Timestamp = NewType('Timestamp', datetime.datetime)
@@ -98,7 +97,7 @@ def convert_dict_keys(old_dict, conversion_table):
     return converted_dict
 
 
-def append_summary(log: List[Any], file_detail: str):
+def append_summary(log, file_detail):
     """Generates and writes the summarized line on the full log file"""
     # Setting the right path to the spreadsheet
     sheet_path = pathlib.Path.cwd().parent.parent.joinpath('res', 'report-' + file_detail + '-test.xlsx')

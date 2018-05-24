@@ -1,8 +1,8 @@
 import datetime
 import time
-from typing import Tuple
 
 import data_converter
+from rpi_conf import RPiConfigs
 
 file_suffix = ['short', 'full', 'test']
 
@@ -14,10 +14,18 @@ short_schema_keys = ['B3F_id', 'name', 'type', 'desc', 'loc', 'cls', 'status', '
                      'pillar_number', 'superficial_quality', 'phase', 'temperature', 'moisture', 'pressure',
                      'record_timestamp', 'BIM_id']
 
-# tolleranza
-moisture_range = 2
-temperature_range = 2
-pressure_range = 2
+urgency_labels = ['safe', 'warning']
+process_params = ['moisture', 'temperature', 'pressure']
+
+# tolleranza sul valore atteso (safe)
+moisture_safe_tolerance = 2
+temperature_safe_tolerance = 2
+pressure_safe_tolerance = 2
+
+# tolleranza sul valore atteso (warning)
+moisture_warning_tolerance = 10
+temperature_warning_tolerance = 10
+pressure_warning_tolerance = 10
 
 # durata delay tra letture successive (in secondi)
 casting_read_delay = 3
@@ -27,61 +35,69 @@ maturation_read_delay = 3
 full_report_sampling_rate = 60
 short_report_sampling_rate = 300
 
-# valori attesi durante il getto
+# for future implementations
+short_report_casting_sampling_rate = 5 * 60  # 5 minutes
+short_report_casting_sampling_rate = 24 * 60 * 60  # 1 day
+
+# expected values during casting
 expected_moisture_casting = 50
 expected_temperature_casting = 28
 expected_pressure_casting = 10
 
-# valori attesi a maturazione
+# expected values at maturation phase
 expected_moisture_maturation = 50
 expected_temperature_maturation = 30
 expected_pressure_maturation = 10
 
-# valori rilevati
-current_moisture = 0.0
-current_temperature = 0.0
-current_pressure = 0.0
+# RPi setup configuration
+rpi = RPiConfigs()
+
+params_expected_values = {'moisture':
+                              {'casting': expected_moisture_casting,
+                               'maturation': expected_moisture_maturation},
+                          'temperature':
+                              {'casting': expected_temperature_casting,
+                               'maturation': expected_temperature_maturation},
+                          'pressure':
+                              {'casting': expected_pressure_casting,
+                               'maturation': expected_pressure_maturation},
+                          }
+
+params_tolerances = {'moisture':
+                         {'safe': moisture_safe_tolerance,
+                          'warning': moisture_warning_tolerance},
+                     'temperature':
+                         {'safe': temperature_safe_tolerance,
+                          'warning': temperature_warning_tolerance},
+                     'pressure':
+                         {'safe': pressure_safe_tolerance,
+                          'warning': pressure_warning_tolerance},
+                     }
 
 
-# controllo parametri durante la gettata
-def check_moisture_casting() -> bool:
-    return float(current_moisture) < abs(expected_moisture_casting - moisture_range)
+def check_param_in_range(param_key, param_value, phase, urgency_label):
+    """checks if the given parameter with his value is in the range allowed,
+    based on the phase of the process and the urgency"""
+
+    return float(param_value) < abs(
+        params_expected_values[param_key][phase] - params_tolerances[param_key][urgency_label])
 
 
-def check_temperature_casting() -> bool:
-    return float(current_temperature) < abs(expected_temperature_casting - temperature_range)
+def check_params(current_params, phase, urgency_label):
+    """Checks if the current parameters are close enough to the expected value,
+     otherwise returns a warning"""
+
+    cumulative_or_check = 0
+
+    for key, value in current_params:
+        param_check = check_param_in_range(param_key=key, param_value=value,
+                                           phase=phase, urgency_label=urgency_label)
+        cumulative_or_check = cumulative_or_check or param_check
+    return cumulative_or_check
 
 
-def check_pressure_casting() -> bool:
-    return float(current_pressure) < abs(expected_pressure_casting - pressure_range)
-
-
-# controllo parametri a gettata terminata
-def check_moisture_maturation() -> bool:
-    return float(current_moisture) < abs(expected_moisture_maturation - moisture_range)
-
-
-def check_temperature_maturation() -> bool:
-    return float(current_temperature) < abs(expected_temperature_maturation - temperature_range)
-
-
-def check_pressure_maturation() -> bool:
-    return float(current_pressure) < abs(expected_pressure_maturation - pressure_range)
-
-
-check_functions = {'casting': [check_moisture_casting(), check_temperature_casting(), check_pressure_casting()],
-                   'maturation': [check_moisture_maturation(), check_temperature_maturation(),
-                                  check_pressure_maturation()]}
-
-
-def check_parameters(phase):
-    """Calls iteratively each function in the check function list,
-     based on the current phase and returs the OR of the conditions"""
-    return check_functions[phase][0]() or check_functions[phase][1]() or check_functions[phase][2]()
-
-
-# interroga i sensori del RaspberryPi per aggiornare i valori dei parametri da monitorare
-def sensor_input_parameters() -> Tuple[float, float, float]:
+def sensor_input_params():
+    """Queries the RPi sensors in order to update the parameters that have to be monitored"""
     # TODO trovare soluzione per sensore di pressione
     detected_moisture = rpi.read_humidity[1]
     detected_temperature = rpi.read_temperature[1]
@@ -89,45 +105,50 @@ def sensor_input_parameters() -> Tuple[float, float, float]:
     return detected_moisture, detected_temperature, detected_pressure
 
 
-# chiede di inserire manualmente i parametri da monitorare
-def user_input_parameters() -> Tuple[float, float, float]:
+def user_input_params():
+    """Asks the user to enter the parameters manually"""
     input_moisture = float(input("Enter current moisture: "))
     input_temperature = float(input("Enter current temperature: "))
     input_pressure = float(input("Enter current pressure: "))
     return input_moisture, input_temperature, input_pressure
 
 
-# aggiorna i parametri da monitorare secondo il canale prestabilito (manuale da utente o automatico da sensori)
-def update_parameters(use_sensors=True) -> Tuple[float, float, float]:
+def update_params(use_sensors=True):
+    """Updates the current parameters using the chosen channel"""
     if use_sensors:
-        return sensor_input_parameters()
+        return sensor_input_params()
     else:
-        return user_input_parameters()
+        return user_input_params()
 
 
 def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issues, n_checklists,
                n_open_checklists, date_created, contractor, completion_percentage, pillar_number,
                superficial_quality, BIM_id):
-    """Initialize plant filling fields that will not be changed during the monitoring session"""
-    plant = {}
-    plant['B3F_id'] = B3F_id
-    plant['name'] = name
-    plant['type'] = type
-    plant['desc'] = desc
-    plant['loc'] = loc
-    plant['cls'] = cls
-    plant['status'] = status
-    plant['n_issues'] = n_issues
-    plant['n_open_issues'] = n_open_issues
-    plant['n_checklists'] = n_checklists
-    plant['n_open_checklists'] = n_open_checklists
-    plant['date_created'] = date_created
-    plant['contractor'] = contractor
-    plant['completion_percentage'] = completion_percentage
-    plant['pillar_number'] = pillar_number
-    plant['superficial_quality'] = superficial_quality
-    plant['BIM_id'] = BIM_id
+    """Initializes the plant filling fields that will not be changed during the monitoring session"""
+    plant = {'B3F_id': B3F_id,
+             'name': name,
+             'type': type,
+             'desc': desc,
+             'loc': loc,
+             'cls': cls,
+             'status': status,
+             'n_issues': n_issues,
+             'n_open_issues': n_open_issues,
+             'n_checklists': n_checklists,
+             'n_open_checklists': n_open_checklists,
+             'date_created': date_created,
+             'contractor': contractor,
+             'completion_percentage': completion_percentage,
+             'pillar_number': pillar_number,
+             'superficial_quality': superficial_quality,
+             'BIM_id': BIM_id}
     return plant
+
+
+def merge_two_dicts(x, y):
+    z = x.copy()  # start with x's keys and values
+    z.update(y)  # modifies z with y's keys and values & returns None
+    return z
 
 
 def save_full_report(log_full):
@@ -146,80 +167,100 @@ def save_short_report(plant_instance, BIM_id, phase, status, record_timestamp, m
                          'moisture': moisture,
                          'temperature': temperature,
                          'pressure': pressure}
-    merged_short_report = {**plant_instance, **short_report_data}
+    # merged_short_report = {**plant_instance, **short_report_data}
+    merged_short_report = merge_two_dicts(plant_instance, short_report_data)
 
     print("Saving short report to spreadsheet")
     log_short.append(merged_short_report)
     data_converter.append_summary(log_short, file_detail=file_suffix[0])
 
 
-def monitoring_phase(plant_instance, current_phase: str, use_sensors: bool = True):
+def monitoring_phase(plant_instance, current_phase, use_sensors=True):
     """Monitoring session under a specific phase"""
-    if use_sensors:
-        from rpi_sensors import RPiConfigs
-        rpi = RPiConfigs()
+    current_params = {
+        'moisture': 0.0,
+        'temperature': 0.0,
+        'pressure': 0.0
+    }
 
-        print(
-            f"Phase: {current_phase}\n"
-            f"Expected moisture {current_phase}: {expected_moisture_casting}\n"
-            f"Expected temperature {current_phase}: {expected_temperature_casting}\n"
-            f"Expected pressure {current_phase}: {expected_pressure_casting}\n")
-        current_moisture, current_temperature, current_pressure = update_parameters(use_sensors)
+    print(
+        "Phase: {}\n"
+        "Expected moisture at {}: {}\n"
+        "Expected temperature at {}: {}\n"
+        "Expected pressure at {}: {}\n".format(current_phase, current_phase,
+                                               expected_moisture_casting, current_phase,
+                                               expected_temperature_casting, current_phase,
+                                               expected_pressure_casting))
 
-        start_time_full_report = time.time()
-        start_time_short_report = time.time()
+    # first read
+    current_params['moisture'], \
+    current_params['temperature'], \
+    current_params['pressure'] = update_params(use_sensors)
 
-        while check_parameters(current_phase):
-            print(f"Parameters at {current_phase} are not as expected\n"
-                  f"Moisture: {current_moisture}\n"
-                  f"Temperature: {current_temperature}\n"
-                  f"Pressure: {current_pressure}\n")
+    start_time_full_report = time.time()
+    start_time_short_report = time.time()
 
-            # TODO comunicazione
-            # invia dati a operatore -> ferma il getto
-            # invia dati a DL
-            # invia dati a centrale di betonaggio
+    while check_params(current_params, phase=current_phase, urgency_label='safe'):
+        print("Parameters at {} are not as expected\n"
+              "Moisture: {}\n"
+              "Temperature: {}\n"
+              "Pressure: {}\n".format(current_phase, current_params['moisture'],
+                                      current_params['temperature'], current_params['pressure']))
 
-            # Aggiornamento parametri dai sensori
-            current_moisture, current_temperature, current_pressure = update_parameters(use_sensors)
+        # TODO communication with the correct operator, based on the check using 'wanring' label
 
-            # update log-full
-            log_full.append({'BIM_id': plant_instance['BIM_id'],
-                             'phase': current_phase,
-                             'status': 'Bad',
-                             'begin_timestamp': start_time_full_report,
-                             'end_timestamp': time.time(),
-                             'moisture': current_moisture,
-                             'temperature': current_temperature,
-                             'pressure': current_pressure})
+        # invia dati a operatore -> ferma il getto
+        # invia dati a DL
+        # invia dati a centrale di betonaggio
 
-            end_time = time.time()
-            full_report_elapsed_time = end_time - start_time_full_report
-            short_report_elapsed_time = end_time - start_time_short_report
+        # Aggiornamento parametri dai sensori
+        current_params['moisture'], \
+        current_params['temperature'], \
+        current_params['pressure'] = update_params(use_sensors)
 
-            # Salvataggio su spreadsheet Excel
-            if full_report_elapsed_time > full_report_sampling_rate:
-                # Salvataggio su file Excel completo (full)
-                save_full_report(log_full)
-                start_time_full_report = 0
-                log_full = []
+        # update log-full
+        log_full.append({'BIM_id': plant_instance['BIM_id'],
+                         'phase': current_phase,
+                         'status': 'Bad',
+                         'begin_timestamp': start_time_full_report,
+                         'end_timestamp': time.time(),
+                         'moisture': current_params['moisture'],
+                         'temperature': current_params['temperature'],
+                         'pressure': current_params['pressure']})
 
-            if short_report_elapsed_time > short_report_sampling_rate:
-                # Salvataggio su file Excel riassuntivo (short)
-                save_short_report(plant_instance, BIM_id=plant_instance['BIM_id'],
-                                  phase=current_phase, status='Bad', record_timestamp=datetime.datetime.now(),
-                                  moisture=current_moisture, temperature=current_temperature, pressure=current_pressure)
-                start_time_short_report = 0
-                log_short = []
+        end_time = time.time()
+        full_report_elapsed_time = end_time - start_time_full_report
+        short_report_elapsed_time = end_time - start_time_short_report
 
-            # monitoring delay
-            if current_phase == 'casting':
-                time.sleep(casting_read_delay)
-            else:
-                time.sleep(maturation_read_delay)
+        if full_report_elapsed_time > full_report_sampling_rate:
+            # Salvataggio su file Excel completo (full)
+            save_full_report(log_full)
+            start_time_full_report = 0
+            log_full = []
+
+        if short_report_elapsed_time > short_report_sampling_rate:
+            # Salvataggio su file Excel riassuntivo (short)
+            save_short_report(plant_instance, BIM_id=plant_instance['BIM_id'],
+                              phase=current_phase, status='Bad', record_timestamp=datetime.datetime.now(),
+                              moisture=current_params['moisture'], temperature=current_params['temperature'],
+                              pressure=current_params['pressure'])
+            start_time_short_report = 0
+            log_short = []
+
+        # monitoring delay
+        if current_phase == 'casting':
+            time.sleep(casting_read_delay)
+        else:
+            time.sleep(maturation_read_delay)
 
 
-def monitoring_session(plant_instance, use_sensors: bool = True):
+def monitoring_session(plant_instance, use_sensors=True):
+    current_params = {
+        'moisture': 0.0,
+        'temperature': 0.0,
+        'pressure': 0.0
+    }
+
     start_time = time.time()
     phases = ['casting', 'maturation']
 
@@ -235,7 +276,9 @@ def monitoring_session(plant_instance, use_sensors: bool = True):
             # Maturation level required reached
             print("Level of maturation required is satisfied. You can now remove the formwork.")
 
-        current_moisture, current_temperature, current_pressure = update_parameters(use_sensors)
+        current_params['moisture'], \
+        current_params['temperature'], \
+        current_params['pressure'] = update_params(use_sensors)
 
         log_full = []
         log_full.append({'BIM_id': plant_instance['BIM_id'],
@@ -243,14 +286,15 @@ def monitoring_session(plant_instance, use_sensors: bool = True):
                          'status': 'OK',
                          'begin_timestamp': start_time,
                          'end_timestamp': datetime.datetime.now(),
-                         'moisture': current_moisture,
-                         'temperature': current_temperature,
-                         'pressure': current_pressure})
+                         'moisture': current_params['moisture'],
+                         'temperature': current_params['temperature'],
+                         'pressure': current_params['pressure']})
 
         save_full_report(log_full)
         save_short_report(plant_instance, BIM_id=plant_instance['BIM_id'],
                           phase=current_phase, status='OK', record_timestamp=datetime.datetime.now(),
-                          moisture=current_moisture, temperature=current_temperature, pressure=current_pressure)
+                          moisture=current_params['moisture'], temperature=current_params['temperature'],
+                          pressure=current_params['pressure'])
         # Reset logs
         log_short = []
         log_full = []
