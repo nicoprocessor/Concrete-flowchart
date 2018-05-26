@@ -1,4 +1,3 @@
-{#parent template#}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,13 +6,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
           integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css' }}"
-
-    {% if title %}
-        <title>Flask: {{ title }}</title>
-    {% else %}
-        <title>Concrete Flowchart</title>
-    {% endif %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}"
 </head>
 <body>
 <div class="container">
