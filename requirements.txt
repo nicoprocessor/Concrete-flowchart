@@ -1,4 +1,2 @@
 Jinja2==2.10
 Flask==0.12.2
-flask_wtf==0.14.2
-wtforms==2.1

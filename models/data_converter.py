@@ -134,7 +134,7 @@ def append_summary(log, file_detail):
 
 # main
 # if __name__ == '__main__':
-# # test
+# # test instance
 # time_series = np.sort(list(map(lambda x: round(x, 3), np.random.random(18))))
 # # full
 # d1f = [{'BIM_id': 'A', 'temperature': 10, 'moisture': 20, 'pressure': 10, 'begin_timestamp': 0, 'end_timestamp': 0},

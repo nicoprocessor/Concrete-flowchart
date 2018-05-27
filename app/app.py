@@ -1,30 +1,23 @@
 from flask import Flask, render_template
-from app.register import RegistrationForm
-from app.login import LoginForm
+
+from login import LoginForm
+from register import RegistrationForm
 
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = '322aaa35662adf0d1e0ecc141413994e'
 
-dummy_data = [
-    {
-        'name': 'Nicola',
-        'surname': 'Onofri'
-    }, {
-        'name': 'Mario',
-        'surname': 'Rossi'
-    }
-]
 
 @app.route('/')
-def login():
-    return render_template('login.html', data=dummy_data)
+def home():
+    form = LoginForm()
+    return render_template('home.html', title='Login', form=form)
 
 
 @app.route('/login')
 def login():
     form = LoginForm()
-    return render_template('login.html', title='Login', form=form)
+    return render_template('home.html', title='Login', form=form)
 
 
 @app.route('/register')
