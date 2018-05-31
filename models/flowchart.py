@@ -106,8 +106,10 @@ def sensor_input_params():
     return detected_moisture, detected_temperature, detected_pressure
 
 
-def user_input_params():
-    """Asks the user to enter the parameters manually"""
+def user_input_params(read_from_file):
+    """Asks the user to enter the parameters manually or reads them from an external file"""
+
+    if read_from_file
     input_moisture = float(input("Enter current moisture: "))
     input_temperature = float(input("Enter current temperature: "))
     input_pressure = float(input("Enter current pressure: "))
@@ -119,7 +121,7 @@ def update_params(use_sensors=True):
     if use_sensors:
         return sensor_input_params()
     else:
-        return user_input_params()
+        return user_input_params(read_from_file=True)
 
 
 def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issues, n_checklists,
@@ -320,8 +322,9 @@ def monitoring_session(plant, use_sensors=True):
 
 if __name__ == '__main__':
     # Init the monitoring system
-    # Order of the parameters is not important since they are filled using params name.
     # Just pay attention if there's any parameter missing.
+    # All these parameters will be moved in the app section, when you want to start monitoring a new project
+    # Since they are all static and they don't change during time
     plant_instance = init_plant(B3F_id='3d0f5ea4-1394-46d0-b0b1-ba0ea9af8379',
                                 name='Pilastro in calcestruzzo - Rettangolare',
                                 type='Pilastro',

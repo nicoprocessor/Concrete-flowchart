@@ -1,15 +1,10 @@
-import datetime
+import os
+import pathlib
+from collections import OrderedDict
+from pprint import pprint
+
 import numpy as np
 import pandas as pd
-import pathlib
-import os
-from pprint import pprint
-from collections import OrderedDict
-
-# typing aliases
-# Timestamp = NewType('Timestamp', datetime.datetime)
-# Report_full_schema = Dict[str, str, float, float, float, str, Timestamp]
-# Report_short_schema = Dict[str, float, float, float, Timestamp]
 
 # Utility constants
 file_suffix = ['short', 'full']

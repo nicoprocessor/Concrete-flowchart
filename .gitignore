@@ -54,3 +54,6 @@ fabric.properties
 
 # Temporary Savings
 *__jb__old
+
+#Python venv
+/venv/*
