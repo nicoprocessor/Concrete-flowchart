@@ -109,7 +109,9 @@ def sensor_input_params():
 def user_input_params(read_from_file):
     """Asks the user to enter the parameters manually or reads them from an external file"""
 
-    if read_from_file
+    if read_from_file:
+        # TODO implement this
+        pass
     input_moisture = float(input("Enter current moisture: "))
     input_temperature = float(input("Enter current temperature: "))
     input_pressure = float(input("Enter current pressure: "))

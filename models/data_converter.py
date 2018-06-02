@@ -3,7 +3,6 @@ import pathlib
 from collections import OrderedDict
 from pprint import pprint
 
-import numpy as np
 import pandas as pd
 
 # Utility constants
@@ -46,15 +45,20 @@ schemas = [
     }]
 
 
+def list_avg(data):
+    """Evaluates the average of the list"""
+    return float(sum(data)) / len(data)
+
+
 def extract_data(log, file_detail):
     """Extracts summarized info from a batch of data"""
     summarized_log = OrderedDict()
 
     BIM_id = log[-1]['BIM_id']
 
-    avg_temperature = np.average([l['temperature'] for l in log])
-    avg_moisture = np.average([l['moisture'] for l in log])
-    avg_pressure = np.average([l['pressure'] for l in log])
+    avg_temperature = list_avg([l['temperature'] for l in log])
+    avg_moisture = list_avg([l['moisture'] for l in log])
+    avg_pressure = list_avg([l['pressure'] for l in log])
 
     summarized_log['BIM_id'] = BIM_id
     summarized_log['temperature'] = round(avg_temperature, float_precision)

@@ -16,7 +16,7 @@ LED_colors = ['r', 'y', 'g']
 class RPiConfigs(object):
     """Configuration class to call when initializing a session with RPi"""
 
-    def __init__(self, green_LED_pin, yellow_LED_pin, red_LED_pin, moisture_temp_sensor_pin=17):
+    def __init__(self, green_LED_pin, yellow_LED_pin, red_LED_pin, moisture_temp_sensor_pin):
         self.moisture_temp_pin = moisture_temp_sensor_pin
         self.green_LED_pin = green_LED_pin
         self.yellow_LED_pin = yellow_LED_pin
