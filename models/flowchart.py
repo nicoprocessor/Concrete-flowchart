@@ -1,24 +1,28 @@
 import datetime
 import time
 
-import data_converter
+from data_converter import append_summary
+from data_converter import read_data_from_spreadsheet
 from rpi_conf import RPiConfigs
-
-file_suffix = ['short', 'full', 'test']
-
-log_full = []  # report completo, ad alta frequenza di campionamento
-log_short = []  # report sintetico
 
 short_schema_keys = ['B3F_id', 'name', 'type', 'desc', 'loc', 'cls', 'status', 'n_issues', 'n_open_issues',
                      'n_checklists', 'n_open_checklists', 'date_created', 'contractor', 'completion_percentage',
                      'pillar_number', 'superficial_quality', 'phase', 'temperature', 'moisture', 'pressure',
                      'record_timestamp', 'BIM_id']
 
+file_suffix = ['short', 'full', 'test']
 urgency_labels = ['safe', 'warning']
 process_params = ['moisture', 'temperature', 'pressure']
 
 # wait for user to grant the access to the new phase or get there automatically
 wait_for_input = True
+
+# read data from a spreadsheet instead of using sensors
+read_data_from_file = True
+
+# load the data from the file once and for all if the flag is set to true
+if read_data_from_file:
+    data = read_data_from_spreadsheet('test_input.xlsx')
 
 # tolerance on expected values (safe)
 moisture_safe_tolerance = 2
@@ -33,6 +37,9 @@ pressure_warning_tolerance = 10
 # delay between two queries (in seconds)
 casting_read_delay = 10
 maturation_read_delay = 10
+
+log_full = []  # complete report, at high sampling rate
+log_short = []  # short report, at low sampling rate
 
 # delay between two queries (in seconds)
 full_report_sampling_rate = 60
@@ -105,24 +112,25 @@ def sensor_input_params():
     return detected_moisture, detected_temperature, detected_pressure
 
 
-def user_input_params(read_from_file):
+def user_input_params():
     """Asks the user to enter the parameters manually or reads them from an external file"""
-
-    if read_from_file:
-        # TODO implement this
-        pass
-    input_moisture = float(input("Enter current moisture: "))
-    input_temperature = float(input("Enter current temperature: "))
-    input_pressure = float(input("Enter current pressure: "))
+    if read_data_from_file:
+        input_moisture = data['Moisture'].pop()
+        input_temperature = data['Temperature'].pop()
+        input_pressure = data['Pressure'].pop()
+    else:
+        input_moisture = float(input("Enter current moisture: "))
+        input_temperature = float(input("Enter current temperature: "))
+        input_pressure = float(input("Enter current pressure: "))
     return input_moisture, input_temperature, input_pressure
 
 
-def update_params(use_sensors=True):
+def update_params(use_sensors):
     """Updates the current parameters using the chosen channel"""
     if use_sensors:
         return sensor_input_params()
     else:
-        return user_input_params(read_from_file=True)
+        return user_input_params()
 
 
 def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issues, n_checklists,
@@ -158,7 +166,7 @@ def merge_two_dicts(x, y):
 def save_full_report(log_full):
     """Save short report to Excel spreadsheet"""
     print("Saving full report to spreadsheet")
-    data_converter.append_summary(log_full, file_detail=file_suffix[1])
+    append_summary(log_full, file_detail=file_suffix[1])
 
 
 def save_short_report(plant_instance, BIM_id, phase, status, record_timestamp, moisture, temperature, pressure):
@@ -176,7 +184,7 @@ def save_short_report(plant_instance, BIM_id, phase, status, record_timestamp, m
 
     print("Saving short report to spreadsheet")
     log_short.append(merged_short_report)
-    data_converter.append_summary(log_short, file_detail=file_suffix[0])
+    append_summary(log_short, file_detail=file_suffix[0])
 
 
 def monitoring_phase(plant, current_phase, use_sensors=True):
@@ -265,6 +273,7 @@ def monitoring_phase(plant, current_phase, use_sensors=True):
 
 
 def monitoring_session(plant, use_sensors=True):
+    """Monitors the phase of the work, sends feedbacks and returns True when the work is done"""
     current_params = {
         'moisture': 0.0,
         'temperature': 0.0,

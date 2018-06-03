@@ -1,6 +1,6 @@
 import os
 import pathlib
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from pprint import pprint
 
 import pandas as pd
@@ -96,11 +96,9 @@ def convert_dict_keys(old_dict, conversion_table):
     return converted_dict
 
 
-def read_data_from_spreadsheet():
+def read_data_from_spreadsheet(file_name):
     """Reads data from the given spreadsheet"""
-    sheet_path = pathlib.Path.cwd().parent.joinpath('res', 'test_input.xlsx')
-
-    pprint(sheet_path)
+    sheet_path = pathlib.Path.cwd().parent.joinpath('res', file_name)
 
     # loads data in a dataframe with the structure "moisture", "pressure", "temperature"
     xl_df = pd.read_excel(open(os.fspath(sheet_path), 'rb'), sheet_name='Sheet1')
@@ -112,7 +110,9 @@ def read_data_from_spreadsheet():
     }
 
     for param, values in xl_df.items():
-        data[param] = list(values.values())
+        deque_values = deque(list(values.values()))
+        deque_values.reverse()
+        data[param] = deque_values
     return data
 
 
@@ -153,5 +153,4 @@ def append_summary(log, file_detail):
 
 
 if __name__ == '__main__':
-    pprint(read_data_from_spreadsheet())
-
+    pprint(read_data_from_spreadsheet(file_name='test_input.xlsx'))
