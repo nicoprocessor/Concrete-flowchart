@@ -23,9 +23,9 @@ data = read_data_from_spreadsheet('test_input1.xlsx')
 wait_for_input = True
 
 # tolerance on expected values (safe)
-moisture_safe_tolerance = 2
-temperature_safe_tolerance = 2
-pressure_safe_tolerance = 2
+moisture_safe_tolerance = 0
+temperature_safe_tolerance = 0
+pressure_safe_tolerance = 0
 
 # tolerance on expected values (warning)
 moisture_warning_tolerance = 10
@@ -83,8 +83,11 @@ params_tolerances = {'moisture':
 def check_param_in_range(param_key, param_value, phase, urgency_label):
     """Checks if the given parameter with his value is in the range allowed,
     based on the phase of the process and the urgency"""
-    return float(param_value) < abs(
-        params_expected_values[param_key][phase] - params_tolerances[param_key][urgency_label])
+    return True if ((float(param_value) < params_expected_values[param_key][phase] +
+                     params_tolerances[param_key][urgency_label])
+                    and (float(param_value) > params_expected_values[param_key][phase] -
+                         params_tolerances[param_key][urgency_label])) \
+        else False
 
 
 def check_params(current_params, phase, urgency_label):
@@ -92,7 +95,7 @@ def check_params(current_params, phase, urgency_label):
      otherwise returns a warning"""
     cumulative_or_check = 0
 
-    for key, value in current_params:
+    for key, value in current_params.items():
         param_check = check_param_in_range(param_key=key, param_value=value,
                                            phase=phase, urgency_label=urgency_label)
         cumulative_or_check = cumulative_or_check or param_check
@@ -141,7 +144,7 @@ def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issu
 
 
 def status_light_output(color):
-    print(color)
+    print("Turning ON LED: " + color)
 
 
 def merge_two_dicts(x, y):
@@ -210,8 +213,10 @@ def monitoring_phase(plant, current_phase):
         if check_params(current_params, phase=current_phase, urgency_label='warning'):
             # still good
             status_light_output('Y')
+            print("Parameters are under control")
         else:  # stop concrete casting
             status_light_output('R')
+            print("Something went wrong during the {} phase!".format(current_phase))
             return False
 
         # parameters update

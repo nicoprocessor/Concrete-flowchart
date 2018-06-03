@@ -100,7 +100,7 @@ def check_params(current_params, phase, urgency_label):
      otherwise returns a warning"""
     cumulative_or_check = 0
 
-    for key, value in current_params:
+    for key, value in current_params.items():
         param_check = check_param_in_range(param_key=key, param_value=value,
                                            phase=phase, urgency_label=urgency_label)
         cumulative_or_check = cumulative_or_check or param_check

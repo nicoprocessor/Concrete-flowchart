@@ -67,7 +67,7 @@ def extract_data(log, file_detail):
 
     if file_detail == file_suffix[0]:  # short
         phase = log[-1]['phase']
-        timestamp = log[-1]['timestamp']
+        timestamp = log[-1]['record_timestamp']
 
         summarized_log['phase'] = phase
         summarized_log['timestamp'] = timestamp
@@ -119,8 +119,8 @@ def read_data_from_spreadsheet(file_name):
 def append_summary(log, file_detail):
     """Generates and writes the summarized line on the full log file"""
     # Setting the right path to the spreadsheet
-    sheet_path = pathlib.Path.cwd().parent.parent.joinpath('res', 'report-' + file_detail + '-test.xlsx')
-    # print("Updating file at: " + os.fspath(sheet_path))
+    sheet_path = pathlib.Path.cwd().parent.joinpath('res', 'report-' + file_detail + '-test.xlsx')
+    print("Updating file at: " + os.fspath(sheet_path))
 
     # Loading previous Excel data into dataframe
     xl_df = pd.read_excel(open(os.fspath(sheet_path), 'rb'), sheet_name='Sheet1')
@@ -136,7 +136,7 @@ def append_summary(log, file_detail):
 
     # Update previous dataframe with the new row
     new_row = pd.DataFrame.from_dict(log_list)
-    new_df = pd.concat([xl_df, new_row], ignore_index=True)
+    new_df = pd.concat([xl_df, new_row], ignore_index=True, sort=True)
 
     # Avoid sorting columns when concatenating dataframes
     new_df = new_df.reindex_axis(xl_df.columns, axis=1)
