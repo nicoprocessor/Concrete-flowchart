@@ -14,15 +14,21 @@ file_suffix = ['short', 'full', 'test']
 urgency_labels = ['safe', 'warning']
 process_params = ['moisture', 'temperature', 'pressure']
 
+# use sensors connected to RPi GPIO
+use_sensors = False
+if use_sensors:
+    # RPi setup configuration
+    rpi = RPiConfigs(green_LED_pin=17, yellow_LED_pin=18, red_LED_pin=27, moisture_temp_sensor_pin=22)
+    read_data_from_file = False
+else:
+    # read data from a spreadsheet instead of using sensors
+    read_data_from_file = True
+
+    # load the data from the file once and for all
+    data = read_data_from_spreadsheet('test_input.xlsx')
+
 # wait for user to grant the access to the new phase or get there automatically
 wait_for_input = True
-
-# read data from a spreadsheet instead of using sensors
-read_data_from_file = True
-
-# load the data from the file once and for all if the flag is set to true
-if read_data_from_file:
-    data = read_data_from_spreadsheet('test_input.xlsx')
 
 # tolerance on expected values (safe)
 moisture_safe_tolerance = 2
@@ -58,9 +64,6 @@ expected_pressure_casting = 20
 expected_moisture_maturation = 20
 expected_temperature_maturation = 40
 expected_pressure_maturation = 20
-
-# RPi setup configuration
-rpi = RPiConfigs(green_LED_pin=17, yellow_LED_pin=18, red_LED_pin=27, moisture_temp_sensor_pin=22)
 
 params_expected_values = {'moisture':
                               {'casting': expected_moisture_casting,
@@ -125,7 +128,7 @@ def user_input_params():
     return input_moisture, input_temperature, input_pressure
 
 
-def update_params(use_sensors):
+def update_params():
     """Updates the current parameters using the chosen channel"""
     if use_sensors:
         return sensor_input_params()
@@ -155,6 +158,15 @@ def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issu
              'superficial_quality': superficial_quality,
              'BIM_id': BIM_id}
     return plant
+
+
+def status_light_output(color):
+    """Shows the status of the process by turning on a LED o printing the LED color on the console"""
+    if use_sensors:
+        rpi.switch_off_all()
+        rpi.change_LED_status(action='ON', LED_color=color)
+    else:
+        print(color)
 
 
 def merge_two_dicts(x, y):
@@ -187,7 +199,7 @@ def save_short_report(plant_instance, BIM_id, phase, status, record_timestamp, m
     append_summary(log_short, file_detail=file_suffix[0])
 
 
-def monitoring_phase(plant, current_phase, use_sensors=True):
+def monitoring_phase(plant, current_phase):
     """Monitoring session under a specific phase"""
     current_params = {
         'moisture': 0.0,
@@ -207,7 +219,7 @@ def monitoring_phase(plant, current_phase, use_sensors=True):
     # first read
     current_params['moisture'], \
     current_params['temperature'], \
-    current_params['pressure'] = update_params(use_sensors)
+    current_params['pressure'] = update_params()
 
     start_time_full_report = time.time()
     start_time_short_report = time.time()
@@ -222,17 +234,15 @@ def monitoring_phase(plant, current_phase, use_sensors=True):
         # checks if the params are close to the expected value or if the cast has to be stopped
         if check_params(current_params, phase=current_phase, urgency_label='warning'):
             # still good
-            rpi.switch_off_all()
-            rpi.change_LED_status(action='ON', LED_color='y')
+            status_light_output('Y')
         else:  # stop concrete casting
-            rpi.switch_off_all()
-            rpi.change_LED_status(action='ON', LED_color='r')
+            status_light_output('R')
             return False
 
         # parameters update
         current_params['moisture'], \
         current_params['temperature'], \
-        current_params['pressure'] = update_params(use_sensors)
+        current_params['pressure'] = update_params()
 
         # update log-full
         log_full.append({'BIM_id': plant['BIM_id'],
@@ -272,7 +282,7 @@ def monitoring_phase(plant, current_phase, use_sensors=True):
     return True
 
 
-def monitoring_session(plant, use_sensors=True):
+def monitoring_session(plant):
     """Monitors the phase of the work, sends feedbacks and returns True when the work is done"""
     current_params = {
         'moisture': 0.0,
@@ -285,7 +295,7 @@ def monitoring_session(plant, use_sensors=True):
 
     for current_phase in phases:
         # monitoring
-        result = monitoring_phase(plant, current_phase, use_sensors)
+        result = monitoring_phase(plant, current_phase)
 
         # if something went wrong, stop the entire monitoring system
         if not result:
@@ -297,8 +307,7 @@ def monitoring_session(plant, use_sensors=True):
             print("Parameters at casting are as expected. Moving to concrete maturation phase.")
 
             # green light
-            rpi.switch_off_all()
-            rpi.change_LED_status(action='ON', LED_color='y')
+            status_light_output('G')
 
             if wait_for_input:
                 input("Press any key to proceed to the next phase")
@@ -307,8 +316,7 @@ def monitoring_session(plant, use_sensors=True):
             print("Level of maturation required is satisfied. You can now remove the formwork.")
 
             # green light
-            rpi.switch_off_all()
-            rpi.change_LED_status(action='ON', LED_color='y')
+            status_light_output('G')
 
             if wait_for_input:
                 input("Press any key to proceed to the next phase")
@@ -316,7 +324,7 @@ def monitoring_session(plant, use_sensors=True):
         # parameters update
         current_params['moisture'], \
         current_params['temperature'], \
-        current_params['pressure'] = update_params(use_sensors)
+        current_params['pressure'] = update_params()
 
         log_full = []
         log_full.append({'BIM_id': plant['BIM_id'],
@@ -360,5 +368,5 @@ if __name__ == '__main__':
                                 pillar_number='112',
                                 superficial_quality='Bassa',
                                 BIM_id='40e526d7-263a-4f74-b935-1359b190b926')
-    result = monitoring_session(plant=plant_instance, use_sensors=False)
+    result = monitoring_session(plant=plant_instance)
     print(result)
