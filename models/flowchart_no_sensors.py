@@ -3,7 +3,6 @@ import time
 
 from data_converter import append_summary
 from data_converter import read_data_from_spreadsheet
-from rpi_conf import RPiConfigs
 
 short_schema_keys = ['B3F_id', 'name', 'type', 'desc', 'loc', 'cls', 'status', 'n_issues', 'n_open_issues',
                      'n_checklists', 'n_open_checklists', 'date_created', 'contractor', 'completion_percentage',
@@ -14,18 +13,11 @@ file_suffix = ['short', 'full', 'test']
 urgency_labels = ['safe', 'warning']
 process_params = ['moisture', 'temperature', 'pressure']
 
-# use sensors connected to RPi GPIO
-use_sensors = False
-if use_sensors:
-    # RPi setup configuration
-    rpi = RPiConfigs(green_LED_pin=17, yellow_LED_pin=18, red_LED_pin=27, moisture_temp_sensor_pin=22)
-    read_data_from_file = False
-else:
-    # read data from a spreadsheet instead of using sensors
-    read_data_from_file = True
+# read data from a spreadsheet instead of using sensors
+read_data_from_file = True
 
-    # load the data from the file once and for all
-    data = read_data_from_spreadsheet('test_input1.xlsx')
+# load the data from the file once and for all
+data = read_data_from_spreadsheet('test_input1.xlsx')
 
 # wait for user to grant the access to the new phase or get there automatically
 wait_for_input = True
@@ -107,14 +99,6 @@ def check_params(current_params, phase, urgency_label):
     return cumulative_or_check
 
 
-def sensor_input_params():
-    """Queries the RPi sensors in order to update the parameters that have to be monitored"""
-    detected_moisture = rpi.read_humidity[1]
-    detected_temperature = rpi.read_temperature[1]
-    detected_pressure = rpi.read_humidity[1]
-    return detected_moisture, detected_temperature, detected_pressure
-
-
 def user_input_params():
     """Asks the user to enter the parameters manually or reads them from an external file"""
     if read_data_from_file:
@@ -129,11 +113,7 @@ def user_input_params():
 
 
 def update_params():
-    """Updates the current parameters using the chosen channel"""
-    if use_sensors:
-        return sensor_input_params()
-    else:
-        return user_input_params()
+    return user_input_params()
 
 
 def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issues, n_checklists,
@@ -161,12 +141,7 @@ def init_plant(B3F_id, name, type, desc, loc, cls, status, n_issues, n_open_issu
 
 
 def status_light_output(color):
-    """Shows the status of the process by turning on a LED o printing the LED color on the console"""
-    if use_sensors:
-        rpi.switch_off_all()
-        rpi.change_LED_status(action='ON', LED_color=color)
-    else:
-        print(color)
+    print(color)
 
 
 def merge_two_dicts(x, y):
