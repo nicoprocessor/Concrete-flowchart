@@ -96,6 +96,26 @@ def convert_dict_keys(old_dict, conversion_table):
     return converted_dict
 
 
+def read_data_from_spreadsheet():
+    """Reads data from the given spreadsheet"""
+    sheet_path = pathlib.Path.cwd().parent.joinpath('res', 'test_input.xlsx')
+
+    pprint(sheet_path)
+
+    # loads data in a dataframe with the structure "moisture", "pressure", "temperature"
+    xl_df = pd.read_excel(open(os.fspath(sheet_path), 'rb'), sheet_name='Sheet1')
+    xl_df = xl_df.to_dict()
+    data = {
+        'Moisture': [],
+        'Pressure': [],
+        'Temperature': []
+    }
+
+    for param, values in xl_df.items():
+        data[param] = list(values.values())
+    return data
+
+
 def append_summary(log, file_detail):
     """Generates and writes the summarized line on the full log file"""
     # Setting the right path to the spreadsheet
@@ -131,42 +151,7 @@ def append_summary(log, file_detail):
     df_check = pd.read_excel(open(os.fspath(sheet_path), 'rb'), sheet_name='Sheet1')
     pprint(df_check)
 
-# main
-# if __name__ == '__main__':
-# # test instance
-# time_series = np.sort(list(map(lambda x: round(x, 3), np.random.random(18))))
-# # full
-# d1f = [{'BIM_id': 'A', 'temperature': 10, 'moisture': 20, 'pressure': 10, 'begin_timestamp': 0, 'end_timestamp': 0},
-#        {'BIM_id': 'A', 'temperature': 12, 'moisture': 22, 'pressure': 20, 'begin_timestamp': 0, 'end_timestamp': 0},
-#        {'BIM_id': 'A', 'temperature': 12, 'moisture': 22, 'pressure': 20, 'begin_timestamp': 0, 'end_timestamp': 0}]
-# d2f = [{'BIM_id': 'A', 'temperature': 20, 'moisture': 50, 'pressure': 20, 'begin_timestamp': 0, 'end_timestamp': 0},
-#        {'BIM_id': 'A', 'temperature': 22, 'moisture': 52, 'pressure': 20, 'begin_timestamp': 0, 'end_timestamp': 0}]
 
-# # short
-# d1s = [{'BIM_id': 'A', 'phase': 'Bad', 'temperature': 10, 'moisture': 20, 'pressure': 10, 'timestamp': 0},
-#        {'BIM_id': 'A', 'phase': 'Bad', 'temperature': 12, 'moisture': 22, 'pressure': 20, 'timestamp': 0},
-#        {'BIM_id': 'A', 'phase': 'Bad', 'temperature': 12, 'moisture': 22, 'pressure': 20, 'timestamp': 0}]
-# d2s = [{'BIM_id': 'A', 'phase': 'Bad', 'temperature': 20, 'moisture': 50, 'pressure': 20, 'timestamp': 0},
-#        {'BIM_id': 'A', 'phase': 'Bad', 'temperature': 22, 'moisture': 52, 'pressure': 20, 'timestamp': 0}]
-#
-# data_f = [d1f, d2f]
-# data_s = [d1s, d2s]
-# counter = 0
-#
-# for i in range(len(data_s)):
-#     l = data_s[i]
-#     for d_index in range(len(l)):
-#         l[d_index]['timestamp'] = time_series[counter]
-#         counter += 1
+if __name__ == '__main__':
+    pprint(read_data_from_spreadsheet())
 
-# for i in range(len(data_f)):
-#     l = data_f[i]
-#     for d_index in range(len(l)):
-#         l[d_index]['begin_timestamp'] = time_series[counter]
-#         counter += 1
-#         l[d_index]['end_timestamp'] = time_series[counter]
-#         counter += 1
-
-# append_summary(d1s, file_detail='short')
-# append_summary(d2s, file_detail='short')
-# append_summary(d2, file_detail='full')

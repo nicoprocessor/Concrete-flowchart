@@ -30,30 +30,30 @@ moisture_warning_tolerance = 10
 temperature_warning_tolerance = 10
 pressure_warning_tolerance = 10
 
-# durata delay tra letture successive (in secondi)
+# delay between two queries (in seconds)
 casting_read_delay = 10
 maturation_read_delay = 10
 
-# delay tra due salvataggi successivi (in secondi)
+# delay between two queries (in seconds)
 full_report_sampling_rate = 60
 short_report_sampling_rate = 300
 
 # for future implementations
 short_report_casting_sampling_rate = 5 * 60  # 5 minutes
-short_report_casting_sampling_rate = 24 * 60 * 60  # 1 day
+# short_report_casting_sampling_rate = 24 * 60 * 60  # 1 day
 
 # expected values during casting
-expected_moisture_casting = 50
+expected_moisture_casting = 20
 expected_temperature_casting = 28
-expected_pressure_casting = 10
+expected_pressure_casting = 20
 
 # expected values at maturation phase
-expected_moisture_maturation = 50
-expected_temperature_maturation = 30
-expected_pressure_maturation = 10
+expected_moisture_maturation = 20
+expected_temperature_maturation = 40
+expected_pressure_maturation = 20
 
 # RPi setup configuration
-rpi = RPiConfigs(green_LED_pin=1, yellow_LED_pin=2, red_LED_pin=3)
+rpi = RPiConfigs(green_LED_pin=17, yellow_LED_pin=18, red_LED_pin=27, moisture_temp_sensor_pin=22)
 
 params_expected_values = {'moisture':
                               {'casting': expected_moisture_casting,
@@ -79,7 +79,7 @@ params_tolerances = {'moisture':
 
 
 def check_param_in_range(param_key, param_value, phase, urgency_label):
-    """checks if the given parameter with his value is in the range allowed,
+    """Checks if the given parameter with his value is in the range allowed,
     based on the phase of the process and the urgency"""
     return float(param_value) < abs(
         params_expected_values[param_key][phase] - params_tolerances[param_key][urgency_label])
@@ -99,7 +99,6 @@ def check_params(current_params, phase, urgency_label):
 
 def sensor_input_params():
     """Queries the RPi sensors in order to update the parameters that have to be monitored"""
-    # TODO trovare soluzione per sensore di pressione
     detected_moisture = rpi.read_humidity[1]
     detected_temperature = rpi.read_temperature[1]
     detected_pressure = rpi.read_humidity[1]
@@ -205,7 +204,7 @@ def monitoring_phase(plant, current_phase, use_sensors=True):
     start_time_full_report = time.time()
     start_time_short_report = time.time()
 
-    while check_params(current_params, phase=current_phase, urgency_label='safe'):
+    while not check_params(current_params, phase=current_phase, urgency_label='safe'):
         print("Parameters at {} are not as expected\n"
               "Moisture: {}\n"
               "Temperature: {}\n"
@@ -221,10 +220,6 @@ def monitoring_phase(plant, current_phase, use_sensors=True):
             rpi.switch_off_all()
             rpi.change_LED_status(action='ON', LED_color='r')
             return False
-
-        # invia dati a operatore -> ferma il getto
-        # invia dati a DL
-        # invia dati a centrale di betonaggio
 
         # parameters update
         current_params['moisture'], \
@@ -291,11 +286,23 @@ def monitoring_session(plant, use_sensors=True):
         if current_phase == 'casting':
             # casting parameters levels as expected
             print("Parameters at casting are as expected. Moving to concrete maturation phase.")
+
+            # green light
+            rpi.switch_off_all()
+            rpi.change_LED_status(action='ON', LED_color='y')
+
             if wait_for_input:
                 input("Press any key to proceed to the next phase")
         else:  # maturation - last phase
             # maturation level required reached
             print("Level of maturation required is satisfied. You can now remove the formwork.")
+
+            # green light
+            rpi.switch_off_all()
+            rpi.change_LED_status(action='ON', LED_color='y')
+
+            if wait_for_input:
+                input("Press any key to proceed to the next phase")
 
         # parameters update
         current_params['moisture'], \
@@ -344,5 +351,5 @@ if __name__ == '__main__':
                                 pillar_number='112',
                                 superficial_quality='Bassa',
                                 BIM_id='40e526d7-263a-4f74-b935-1359b190b926')
-    result = monitoring_session(plant=plant_instance, use_sensors=True)
+    result = monitoring_session(plant=plant_instance, use_sensors=False)
     print(result)
