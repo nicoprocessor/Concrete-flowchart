@@ -1,8 +1,8 @@
 import datetime
 import time
 
-from data_converter import append_summary
-from data_converter import read_data_from_spreadsheet
+from log_processing import append_summary
+from log_processing import read_data_from_spreadsheet
 from rpi_conf import RPiConfigs
 
 short_schema_keys = ['B3F_id', 'name', 'type', 'desc', 'loc', 'cls', 'status', 'n_issues', 'n_open_issues',
@@ -175,6 +175,7 @@ def merge_two_dicts(x, y):
     return z
 
 
+# TODO move this to the server, store the values in a dictionary
 def save_full_report(log_full):
     """Save short report to Excel spreadsheet"""
     print("Saving full report to spreadsheet")
