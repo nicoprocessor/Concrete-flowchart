@@ -30,8 +30,8 @@ temperature_warning_tolerance = 10
 pressure_warning_tolerance = 10
 
 # delay between two queries (in seconds)
-casting_read_delay = 10
-maturation_read_delay = 10
+casting_read_delay = 5
+maturation_read_delay = 5
 
 # delay between two saving operations (in iterations)
 short_report_iterations_delay = 10
@@ -46,14 +46,14 @@ short_report_casting_sampling_rate = 5 * 60  # 5 minutes
 # short_report_casting_sampling_rate = 24 * 60 * 60  # 1 day
 
 # expected values during casting
-expected_moisture_casting = 20
-expected_temperature_casting = 28
+expected_moisture_casting = 68
+expected_temperature_casting = 20
 expected_pressure_casting = 20
 
 # expected values at maturation phase
-expected_moisture_maturation = 20
-expected_temperature_maturation = 40
-expected_pressure_maturation = 20
+expected_moisture_maturation = 75
+expected_temperature_maturation = 25
+expected_pressure_maturation = 25
 
 params_expected_values = {'moisture':
                               {'casting': expected_moisture_casting,
