@@ -42,7 +42,6 @@ full_report_sampling_rate = 30
 short_report_sampling_rate = 120
 
 # for future implementations
-short_report_casting_sampling_rate = 5 * 60  # 5 minutes
 # short_report_casting_sampling_rate = 24 * 60 * 60  # 1 day
 
 # expected values during casting
