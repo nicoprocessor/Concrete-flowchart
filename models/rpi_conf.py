@@ -3,7 +3,7 @@ import time
 
 import RPi.GPIO as GPIO
 
-import I2C_LCD_driver
+# import I2C_LCD_driver
 import dht11
 
 # delay between two readings if the first was not valid
@@ -23,23 +23,23 @@ class RPiConfigs(object):
         self.red_LED_pin = red_LED_pin
         self.moisture_sensor_instance = dht11.DHT11(pin=moisture_temp_sensor_pin)
         self.LED_mapping = {'r': red_LED_pin, 'g': green_LED_pin, 'y': yellow_LED_pin}
-        self.lcd = I2C_LCD_driver.lcd()
+        # self.lcd = I2C_LCD_driver.lcd()
 
         # initialize GPIO
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.cleanup()
 
-    def clear_lcd(self):
-        """Clears the lcd screen"""
-        self.lcd.lcd_clear()
+    # def clear_lcd(self):
+    #     """Clears the lcd screen"""
+    #     self.lcd.lcd_clear()
 
-    def write_lcd_for_time_interval(self, row1, row2, time_interval):
-        """Displays the given strings at the given position, for the time interval"""
-        self.lcd.lcd_display_string(row1, 1, 0)
-        self.lcd.lcd_display_string(row2, 2, 0)
-        time.sleep(time_interval)
-        self.clear_lcd()
+    # def write_lcd_for_time_interval(self, row1, row2, time_interval):
+    #     """Displays the given strings at the given position, for the time interval"""
+    #     self.lcd.lcd_display_string(row1, 1, 0)
+    #     self.lcd.lcd_display_string(row2, 2, 0)
+    #     time.sleep(time_interval)
+    #     self.clear_lcd()
 
     def change_LED_status(self, action, LED_color='r'):
         """Changes a particular LED status according to specified action"""
