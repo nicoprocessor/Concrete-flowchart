@@ -28,6 +28,9 @@ class RPiConfigs(object):
         # initialize GPIO
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
+        GPIO.setup(green_LED_pin, GPIO.OUT)
+        GPIO.setup(yellow_LED_pin, GPIO.OUT)
+        GPIO.setup(red_LED_pin, GPIO.OUT)
         GPIO.cleanup()
 
     # def clear_lcd(self):
