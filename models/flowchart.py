@@ -48,12 +48,12 @@ short_report_casting_sampling_rate = 5 * 60  # 5 minutes
 # expected values during casting
 expected_moisture_casting = 68
 expected_temperature_casting = 20
-expected_pressure_casting = 20
+expected_pressure_casting = 68
 
 # expected values at maturation phase
 expected_moisture_maturation = 75
 expected_temperature_maturation = 25
-expected_pressure_maturation = 25
+expected_pressure_maturation = 75
 
 params_expected_values = {'moisture':
                               {'casting': expected_moisture_casting,
@@ -126,8 +126,9 @@ def update_params():
 def status_light_output(color):
     """Shows the status of the process by turning on a LED o printing the LED color on the console"""
     if use_sensors:
-        rpi.switch_off_all()
-        rpi.change_LED_status(action='ON', LED_color=color)
+        pass
+        # rpi.switch_off_all()
+        # rpi.change_LED_status(action='ON', LED_color=color)
     else:
         print(color)
 
