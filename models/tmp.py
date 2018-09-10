@@ -30,7 +30,7 @@ maturation_read_delay = 5
 
 # delay between two queries (in seconds)
 full_report_sampling_rate = 30  # 30 seconds
-short_report_sampling_rate = 180  # 3 minutes
+short_report_sampling_rate = 120  # 3 minutes
 
 # for future implementations
 short_report_casting_sampling_rate = 5 * 60  # 5 minutes
@@ -164,7 +164,7 @@ def monitoring_phase(plant, current_phase):
                                           expected_pressure_casting,
                                           moisture_safe_tolerance,
                                           moisture_warning_tolerance))
-    else:  # maturations phase
+    else:  # maturation phase
         print(
             "Phase: {}\n"
             "Expected moisture at {}: {}\n"
@@ -255,33 +255,6 @@ def monitoring_phase(plant, current_phase):
             # reset timers
             start_time_short_report = datetime.datetime.now()
             iterations_short_report = 0
-
-        # uncomment this if using sensors
-        # if full_report_elapsed_time.seconds > full_report_sampling_rate:
-        #     # save to full report file
-        #     save_full_report(log_full)
-        #
-        #     # reset timer and clear log
-        #     start_time_full_report = 0
-        #     log_full = []
-
-        # if short_report_elapsed_time.seconds > short_report_sampling_rate:
-        #     # save to short report file
-        #     save_short_report(plant, bim_id=plant['BIM_id'],
-        #                       phase=current_phase.capitalize(),
-        #                       status=current_phase.capitalize() + ': Bad',
-        #                       record_timestamp=datetime.datetime.now(),
-        #                       moisture=current_params['moisture'],
-        #                       temperature=current_params['temperature'],
-        #                       pressure=current_params['pressure'])
-        #     # reset timer and clear log
-        #     start_time_short_report = 0
-
-        # monitoring delay
-        # if current_phase == 'casting':
-        #     time.sleep(casting_read_delay)
-        # else:
-        #     time.sleep(maturation_read_delay)
     return True
 
 
@@ -322,7 +295,7 @@ def monitoring_session(plant):
                 status_light_output('G')
 
                 # parameters update
-                current_params['moisture'],\
+                current_params['moisture'], \
                 current_params['temperature'], \
                 current_params['pressure'] = update_params()
 
@@ -348,30 +321,6 @@ def monitoring_session(plant):
                                   pressure=current_params['pressure'])
 
                 return True
-
-        # parameters update
-        current_params['moisture'], current_params['temperature'], current_params['pressure'] = update_params()
-
-        # now the phase status will be OK since we moved to the next phase (parameters are as expected)
-        phase_change_record = {'BIM_id': plant['BIM_id'],
-                               'phase': current_phase.capitalize(),
-                               'status': current_phase.capitalize() + ': OK',
-                               'begin_timestamp': start_time,
-                               'end_timestamp': datetime.datetime.now(),
-                               'moisture': current_params['moisture'],
-                               'temperature': current_params['temperature'],
-                               'pressure': current_params['pressure']}
-
-        # save to Excel spreadsheet before passing to the next phase
-        save_full_report([phase_change_record])
-        save_short_report(plant,
-                          bim_id=plant['BIM_id'],
-                          phase=current_phase.capitalize(),
-                          status=current_phase.capitalize() + ': OK',
-                          record_timestamp=datetime.datetime.now(),
-                          moisture=current_params['moisture'],
-                          temperature=current_params['temperature'],
-                          pressure=current_params['pressure'])
 
 
 def init_plant(b3f_id, name, type, desc, loc, cls, status, n_issues, n_open_issues, n_checklists,
@@ -424,4 +373,3 @@ if __name__ == '__main__':
                                 bim_id=bim_id)
 
     result = monitoring_session(plant=plant_instance)
-    # print(result)
